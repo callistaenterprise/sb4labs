@@ -15,7 +15,7 @@ server.port: 7002
 spring.http:
   clients:
     connect-timeout: 500ms
-    read-timeout: 1000ms
+    read-timeout: 2000ms
 #   ssl.bundle: mykeystore
 
   serviceclient:
@@ -84,6 +84,10 @@ resilience4j:
         minimumNumberOfCalls: 5
         failureRateThreshold: 50
         waitDurationInOpenState: 10s
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        ignoreExceptions:
+          - se.magnus.sb4labs.api.exceptions.InvalidInputException
+          - se.magnus.sb4labs.api.exceptions.NotFoundException
 
 # MY OWN CONFIG
 
@@ -128,4 +132,4 @@ spring:
 logging.level:
   root: INFO
   se.magnus: DEBUG
-  # reactor.netty.http.client.HttpClientConnect: DEBUG
+  io.github.resilience4j.circuitbreaker.internal.CircuitBreakerStateMachine: DEBUG
