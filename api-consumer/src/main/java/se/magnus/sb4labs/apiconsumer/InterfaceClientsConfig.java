@@ -89,11 +89,18 @@ public class InterfaceClientsConfig {
       HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
 
       LOG.info("""
-					Performing request {} {}
-					{}
-					""", request.getMethod(), request.getURI(), request.getHeaders());
+				Performing request: {} {}
+				Headers: {}
+				""", request.getMethod(), request.getURI(), request.getHeaders());
 
-      return execution.execute(request, body);
+      ClientHttpResponse response = execution.execute(request, body);
+
+      LOG.info("""
+        Response, status code: {}
+        Headers: {}
+        """, response.getStatusCode(), response.getHeaders());
+
+      return response;
     }
   }
 }

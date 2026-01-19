@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RestController;
 import se.magnus.sb4labs.api.core.recommendation.Recommendation;
 import se.magnus.sb4labs.api.core.recommendation.RecommendationRestService;
+import se.magnus.sb4labs.api.exceptions.InvalidInputException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +17,15 @@ public class RecommendationRestController implements RecommendationRestService {
 
   @Override
   public List<Recommendation> getRecommendations(int productId) {
+
+    if (productId < 1) {
+      throw new InvalidInputException("Invalid productId: " + productId);
+    }
+
+    if (productId == 113) {
+      LOG.debug("No recommendations found for productId: {}", productId);
+      return new ArrayList<>();
+    }
 
     List<Recommendation> list = new ArrayList<>();
     list.add(new Recommendation(productId, 1, "Author 1", 1, "Content 1"));

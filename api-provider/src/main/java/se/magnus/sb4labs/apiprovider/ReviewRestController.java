@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RestController;
 import se.magnus.sb4labs.api.core.review.Review;
 import se.magnus.sb4labs.api.core.review.ReviewRestService;
+import se.magnus.sb4labs.api.exceptions.InvalidInputException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +17,15 @@ public class ReviewRestController implements ReviewRestService {
 
   @Override
   public List<Review> getReviews(int productId) {
+
+    if (productId < 1) {
+      throw new InvalidInputException("Invalid productId: " + productId);
+    }
+
+    if (productId == 213) {
+      LOG.debug("No reviews found for productId: {}", productId);
+      return new ArrayList<>();
+    }
 
     List<Review> list = new ArrayList<>();
     list.add(new Review(productId, 1, "Author 1", "Subject 1", "Content 1"));

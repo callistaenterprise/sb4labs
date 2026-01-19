@@ -67,7 +67,7 @@ public class ProductCompositeRestController implements ProductCompositeRestServi
   @Override
   public ProductAggregate getProduct(int productId, int delay, int faultPercent) {
 
-    LOG.debug("Calling the three APIs using RestClient in parallell using StructuredTaskScope...");
+    LOG.debug("Calling the three APIs using RestClient in parallel using StructuredTaskScope...");
 
     try (var scope = StructuredTaskScope.open()) {
 
@@ -93,7 +93,7 @@ public class ProductCompositeRestController implements ProductCompositeRestServi
     @RequestParam(value = "faultPercent", required = false, defaultValue = "0") int faultPercent
   ) {
 
-    LOG.debug("Calling the three APIs using interface clients in parallell using StructuredTaskScope...");
+    LOG.debug("Calling the three APIs using interface clients in parallel using StructuredTaskScope...");
 
     try (var scope = StructuredTaskScope.open()) {
 

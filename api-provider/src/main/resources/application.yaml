@@ -1,11 +1,10 @@
+server.port: 7001
 spring.application.name: api-provider
-
-# Helps testing, should not be used in production
-server.error.include-message: always
 
 spring.threads.virtual.enabled: true
 
-server.port: 7001
+# Helps testing, should be set to never in production
+spring.web.error.include-message: always
 
 management:
   opentelemetry.tracing.export.otlp.endpoint: http://localhost:4318/v1/traces

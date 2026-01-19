@@ -1,8 +1,10 @@
+server.port: 7002
 spring.application.name: api-consumer
 
 spring.threads.virtual.enabled: true
 
-server.port: 7002
+# Helps testing, should be set to never in production
+spring.web.error.include-message: always
 
 #spring.ssl.bundle.jks.mykeystore:
 #  key:
