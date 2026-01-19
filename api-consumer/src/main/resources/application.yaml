@@ -42,12 +42,15 @@ app:
   product-service:
     host: localhost
     port: 7001
+    apiversion: 1
   recommendation-service:
     host: localhost
     port: 7001
+    apiversion: 2
   review-service:
     host: localhost
     port: 7001
+    apiversion: 3
 
 
 management:

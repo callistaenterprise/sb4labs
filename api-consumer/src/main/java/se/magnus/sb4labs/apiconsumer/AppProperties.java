@@ -12,5 +12,5 @@ public record AppProperties(
   @NotNull @Valid AppProperties.ServiceInfo recommendationService,
   @NotNull @Valid AppProperties.ServiceInfo reviewService
 ) {
-  public record ServiceInfo(@NotBlank String host, @Positive int port) {}
+  public record ServiceInfo(@NotBlank String host, @Positive int port, @Positive int apiversion) {}
 }
