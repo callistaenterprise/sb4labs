@@ -210,23 +210,25 @@ No problem.
    {"timestamp":"2026-01-04T15:47:42.391106+01:00","path":"/product-composite/interface-client/13","status":404,"error":"Not Found","message":"No product found for productId: 13"}%
    ```
 4. Circuit Breaker, Retry, and Timeout
+
    Spring or Resilience4J?   
    Start with Resilience4J!
 
    * https://docs.spring.io/spring-cloud-circuitbreaker/docs/current/reference/html/spring-cloud-circuitbreaker-resilience4j.html
    * https://resilience4j.readme.io/docs/circuitbreaker
 
+   **TODO**: Timeout ger 500 fel, kan man fånga timeout fel och skicka det vidare istället???
+
+   ``` 
+   alias ml-cb='clear; while true; do r=$(curl http://localhost:7002/actuator/circuitbreakers -s | jq -r .circuitBreakers.productGroup.state); sleep 1; clear; echo $r; done'
+   alias ml-health='clear; while true; do r=$(curl http://localhost:7002/actuator/health -s | jq -r .status); sleep 1; clear; echo $r; done'
    ```
    
-    for ((n=0; n<6; n++)); do
-        curl localhost:7002/product-composite/sequential/1 -i 
-    done
+   Verify CB functionality:
 
-   curl http://localhost:7002/actuator/health -s | jq .
-   curl http://localhost:7002/actuator/circuitbreakers -s | jq .
-   curl http://localhost:7002/actuator/circuitbreakerevents -s | jq .
-   
-   alias ml-cb='clear; while true; do r=$(curl http://localhost:7002/actuator/circuitbreakers -s | jq -r .circuitBreakers.productGroup.state); sleep 1; echo $r; done'
+   ```
+   ./test-resilience.bash
+   IMPL=sequential ./test-resilience.bash
    ```
 
 10. Logging
@@ -245,7 +247,7 @@ curl http://localhost:7001/1/faultrate
 
 ## CircuitBreaker
 
-SC or Resilience4J?
+See `Interface clients`!
 
 ## ConcurrencyLimit
 
