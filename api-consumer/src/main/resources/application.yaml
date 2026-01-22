@@ -104,6 +104,39 @@ spring:
       resilience4j:
         disable-time-limiter: true
 
+########
+# For RestCLient based CircuitBreaker
+########
+
+resilience4j.timelimiter.instances.product.timeoutDuration: 2s
+
+resilience4j.retry:
+  instances:
+    product:
+      maxAttempts: 3
+      waitDuration: 1000
+#      retryExceptions:
+#        - org.springframework.web.client.HttpClientErrorException
+#        - org.springframework.web.reactive.function.client.WebClientResponseException$InternalServerError
+
+management.health.circuitbreakers.enabled: true
+
+resilience4j.circuitbreaker:
+  instances:
+    product:
+      allowHealthIndicatorToFail: false
+      registerHealthIndicator: true
+      slidingWindowType: COUNT_BASED
+      slidingWindowSize: 5
+      failureRateThreshold: 50
+      waitDurationInOpenState: 10000
+      permittedNumberOfCallsInHalfOpenState: 3
+      automaticTransitionFromOpenToHalfOpenEnabled: true
+      ignoreExceptions:
+        - se.magnus.sb4labs.api.exceptions.InvalidInputException
+        - se.magnus.sb4labs.api.exceptions.NotFoundException
+
+
 #resilience4j:
 #  circuitbreaker:
 #    instances:
@@ -134,4 +167,5 @@ spring:
 logging.level:
   root: INFO
   se.magnus: DEBUG
+  io.github.resilience4j: DEBUG
   io.github.resilience4j.circuitbreaker.internal.CircuitBreakerStateMachine: DEBUG

@@ -1,5 +1,9 @@
 package se.magnus.sb4labs.apiconsumer;
 
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
@@ -51,6 +55,9 @@ public class ProductCompositeIntegration implements ProductRestService, Recommen
     reviewServiceUrl = "http://" + props.reviewService().host() + ":" + props.reviewService().port() + "/review?productId=";
   }
 
+  @Retry(name = "product")
+  @TimeLimiter(name = "product")
+  @CircuitBreaker(name = "product", fallbackMethod = "getProductFallbackValue")
   public Product getProduct(int productId, int delay, int faultPercent) {
 
     try {
@@ -84,6 +91,20 @@ public class ProductCompositeIntegration implements ProductRestService, Recommen
           throw ex;
       }
     }
+  }
+
+  private Product getProductFallbackValue(int productId, int delay, int faultPercent, CallNotPermittedException ex) {
+
+    LOG.warn("Creating a fail-fast fallback product for productId = {}, delay = {}, faultPercent = {} and exception = {} ",
+      productId, delay, faultPercent, ex.toString());
+
+    if (productId == 13) {
+      String errMsg = "Product Id: " + productId + " not found in fallback cache!";
+      LOG.warn(errMsg);
+      throw new NotFoundException(errMsg);
+    }
+
+    return new Product(productId, "Fallback product" + productId, productId);
   }
 
   private String getErrorMessage(HttpClientErrorException ex) {
