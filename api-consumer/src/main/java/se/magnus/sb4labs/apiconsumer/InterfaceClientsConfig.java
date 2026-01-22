@@ -64,16 +64,18 @@ public class InterfaceClientsConfig {
   }
 
   private void handleError(HttpRequest request, ClientHttpResponse response) throws IOException {
-    var status = response.getStatusCode();
-    if (status == NOT_FOUND) {
-      LOG.warn("Got an NOT_FOUND HTTP error, response");
-      throw new NotFoundException(getErrorMessage(response));
+
+    switch (response.getStatusCode()) {
+      case NOT_FOUND:
+        LOG.warn("Got an NOT_FOUND HTTP error response");
+        throw new NotFoundException(getErrorMessage(response));
+      case UNPROCESSABLE_CONTENT:
+        LOG.warn("Got an UNPROCESSABLE_CONTENT HTTP error response");
+        throw new InvalidInputException(getErrorMessage(response));
+      default:
+        LOG.warn("Got an unexpected HTTP error: {}...", response.getStatusCode().value());
+        throw new IllegalStateException("Unexpected HTTP error: " + response.getStatusCode().value());
     }
-    if (status == UNPROCESSABLE_CONTENT) {
-      LOG.warn("Got an UNPROCESSABLE_CONTENT HTTP error, response");
-      throw new InvalidInputException(getErrorMessage(response));
-    }
-    LOG.warn("Got an unexpected HTTP error: {}...", status.value());
   }
 
   private String getErrorMessage(ClientHttpResponse response) throws IOException {

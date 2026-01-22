@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
 #
-# Sample usage:
+# Test Interface Client:
 #
-#   HOST=localhost PORT=7001 ./test-em-all.bash
+#   ./test-em-all.bash
+#
+# Test Sequential Client:
+#
+#   IMPL=sequential ./test-resilience.bash
+#
+# TODO: Resilience functions not working!
+# Test RestClient:
+#
+#   IMPL=rest-client ./test-resilience.bash
 #
 : ${HOST=localhost}
 : ${PORT=7002}
@@ -155,6 +164,7 @@ function testCircuitBreaker() {
 }
 
 set -e
+# set -x
 
 echo "Start Tests:" `date`
 

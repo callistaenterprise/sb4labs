@@ -65,7 +65,14 @@ public class ProductCompositeRestController implements ProductCompositeRestServi
   }
 
   @Override
-  public ProductAggregate getProduct(int productId, int delay, int faultPercent) {
+  @GetMapping(
+    value = "/product-composite/rest-client/{productId}",
+    produces = "application/json")
+  public ProductAggregate getProduct(
+    @PathVariable int productId,
+    @RequestParam(value = "delay", required = false, defaultValue = "0") int delay,
+    @RequestParam(value = "faultPercent", required = false, defaultValue = "0") int faultPercent
+  ) {
 
     LOG.debug("Calling the three APIs using RestClient in parallel using StructuredTaskScope...");
 
@@ -122,29 +129,6 @@ public class ProductCompositeRestController implements ProductCompositeRestServi
     return threadInfo;
   }
 
-// WORK IN PROGRESS. COPIED FROM https://github.com/micrometer-metrics/micrometer/issues/5761#issuecomment-2580798283
-//  private ProductAggregate getProductAggregatePropagateContextForObservability(int productId) {
-//    try (var scope = new StructuredTaskScope<>()) {
-//      ObservationRegistry registry = null;
-//      return Observation.createNotStarted("parent", registry)
-//               .observe( () -> {
-//                 // Capture all thread local values
-//                 ContextSnapshot snapshot = ContextSnapshotFactory.builder().contextRegistry(ContextRegistry.getInstance()).build().captureAll();
-//
-//                 StructuredTaskScope.Subtask<Product> productSubTask = scope.fork(snapshot.wrap(() -> integration.getProduct(productId)));
-//                 StructuredTaskScope.Subtask<List<Recommendation>> recommendationsSubTask = scope.fork(snapshot.wrap(() -> integration.getRecommendations(productId)));
-//                 StructuredTaskScope.Subtask<List<Review>> reviewsSubTask = scope.fork(snapshot.wrap(() -> integration.getReviews(productId)));
-//
-//                 scope.join();
-//
-//                 return createProductAggregate(productSubTask.get(), recommendationsSubTask.get(), reviewsSubTask.get());
-//               });
-//    } catch (InterruptedException e) {
-//      throw new RuntimeException(e);
-//    }
-//  }
-//
-
   private ProductAggregate createProductAggregate(
     Product product,
     List<Recommendation> recommendations,
@@ -169,5 +153,28 @@ public class ProductCompositeRestController implements ProductCompositeRestServi
 
     return new ProductAggregate(productId, name, weight, recommendationSummaries, reviewSummaries);
   }
+
+// WORK IN PROGRESS. TRYiNG TO PROPAGATE TRACT CONTEXT. COPIED FROM https://github.com/micrometer-metrics/micrometer/issues/5761#issuecomment-2580798283
+//  private ProductAggregate getProductAggregatePropagateContextForObservability(int productId) {
+//    try (var scope = new StructuredTaskScope<>()) {
+//      ObservationRegistry registry = null;
+//      return Observation.createNotStarted("parent", registry)
+//               .observe( () -> {
+//                 // Capture all thread local values
+//                 ContextSnapshot snapshot = ContextSnapshotFactory.builder().contextRegistry(ContextRegistry.getInstance()).build().captureAll();
+//
+//                 StructuredTaskScope.Subtask<Product> productSubTask = scope.fork(snapshot.wrap(() -> integration.getProduct(productId)));
+//                 StructuredTaskScope.Subtask<List<Recommendation>> recommendationsSubTask = scope.fork(snapshot.wrap(() -> integration.getRecommendations(productId)));
+//                 StructuredTaskScope.Subtask<List<Review>> reviewsSubTask = scope.fork(snapshot.wrap(() -> integration.getReviews(productId)));
+//
+//                 scope.join();
+//
+//                 return createProductAggregate(productSubTask.get(), recommendationsSubTask.get(), reviewsSubTask.get());
+//               });
+//    } catch (InterruptedException e) {
+//      throw new RuntimeException(e);
+//    }
+//  }
+//
 
 }

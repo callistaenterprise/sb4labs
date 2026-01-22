@@ -32,23 +32,23 @@ docker rm -f jaeger
 
 ```
 clear
-./gradlew build
-java -jar api-provider/build/libs/api-provider-0.0.1-SNAPSHOT.jar
-java --enable-preview --enable-native-access=ALL-UNNAMED -jar api-consumer/build/libs/api-consumer-0.0.1-SNAPSHOT.jar
+# ./gradlew build
+# java -jar api-provider/build/libs/api-provider-0.0.1-SNAPSHOT.jar
+# java --enable-preview --enable-native-access=ALL-UNNAMED -jar api-consumer/build/libs/api-consumer-0.0.1-SNAPSHOT.jar
 
 ./gradlew api-provider:build -x test && java -jar api-provider/build/libs/api-provider-0.0.1-SNAPSHOT.jar
 ./gradlew api-consumer:build -x test && java --enable-preview --enable-native-access=ALL-UNNAMED -jar api-consumer/build/libs/api-consumer-0.0.1-SNAPSHOT.jar
 
-curl localhost:7002/product-composite/2 -i
 curl localhost:7002/product-composite/interface-client/2 -i
+curl localhost:7002/product-composite/rest-client/2 -i
 curl localhost:7002/product-composite/sequential/2 -i
 curl localhost:7002/thread-info
 
 curl localhost:7001/1/product/1 -i
-curl 'localhost:7001/1/recommendation?productId=1' -i
-curl 'localhost:7001/1/review?productId=1' -i 
+curl 'localhost:7001/2/recommendation?productId=1' -i
+curl 'localhost:7001/3/review?productId=1' -i 
 
-kill $(jobs -p)
+# kill $(jobs -p)
 
 ```
 # Fine grained dependencies, smaller jars?
@@ -251,6 +251,20 @@ See `Interface clients`!
 
 ## ConcurrencyLimit
 
+# Spring Data Ahead of Time Repositories
+
+See:
+
+1. Blog post #1: https://spring.io/blog/2025/05/22/spring-data-ahead-of-time-repositories
+2. Blog post #2: https://spring.io/blog/2025/11/25/spring-data-ahead-of-time-repositories-part-2
+3. Code example: https://github.com/spring-projects/spring-data-examples/tree/main/jpa/aot-optimization
+
+**Notes:**
+
+1. Does not support reactive JPA repositories.
+2. Requires AOT compilation.
+   * See examples of extra config required due AOT in CH23 of the MS-book.
+
 # Spring Dev Tools
 
 See:
@@ -315,3 +329,4 @@ Kolla användning av com.fasterxml.jackson i bokens källkod...
 * https://docs.openrewrite.org/recipes/java/spring/boot4/upgradespringboot_4_0-moderne-edition
 * https://docs.moderne.io/user-documentation/moderne-cli/getting-started/cli-intro/
 * https://docs.moderne.io/user-documentation/moderne-platform/
+ 
