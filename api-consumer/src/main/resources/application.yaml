@@ -6,6 +6,14 @@ spring.threads.virtual.enabled: true
 # Helps testing, should be set to never in production
 spring.web.error.include-message: always
 
+management:
+  endpoints.web.exposure.include: health,info,circuitbreakers,circuitbreakerevents
+  opentelemetry.tracing.export.otlp.endpoint: http://localhost:4318/v1/traces
+  otlp.metrics.export.enabled: false
+  # Skip tracing, if not required
+  tracing.export.enabled: false
+  tracing.sampling.probability: 1.0
+
 #spring.ssl.bundle.jks.mykeystore:
 #  key:
 #    alias: localhost
@@ -53,15 +61,6 @@ app:
     host: localhost
     port: 7001
     apiversion: 3
-
-
-management:
-  endpoints.web.exposure.include: health,info,circuitbreakers,circuitbreakerevents
-  opentelemetry.tracing.export.otlp.endpoint: http://localhost:4318/v1/traces
-  tracing.sampling.probability: 1.0
-  otlp.metrics.export.enabled: false
-  # Skip tracing, if not required
-  tracing.export.enabled: false
 
 # Suggestion from ChatGPT
 

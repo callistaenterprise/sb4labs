@@ -8,52 +8,81 @@ graph TD;
     Composite-->Review;
 ```
 
-# Start Jaeger for OpenTelemetry tracing
+The Composite service calling the core services uses:
+1. Using Virtual Threads with Structured Concurrency
+1. Using Interface Clients and RestClients
+
+Three variants:
+1. `sequential` - Sequential with Interface Clients
+1. `interface-client` - Concurrent with Interface Clients
+1. `rest-client` - Concurrent with RestClients
+
+> **NOTE:** For simplicity, one API PRovider implementans all three core services
+
+# Build, run, and test
+
+Run each command in a separate terminal:
 
 ```
-docker run -d --name jaeger \
-  -p 16686:16686 \
-  -p 4317:4317 \
-  -p 4318:4318 \
-  -p 5778:5778 \
-  -p 9411:9411 \
-  cr.jaegertracing.io/jaegertracing/jaeger:2.11.0
-```
-
-WebUI: http://localhost:16686
-
-When done:
-
-```
-docker rm -f jaeger
-```
-
-# Build and run
-
-```
-clear
-# ./gradlew build
-# java -jar api-provider/build/libs/api-provider-0.0.1-SNAPSHOT.jar
-# java --enable-preview --enable-native-access=ALL-UNNAMED -jar api-consumer/build/libs/api-consumer-0.0.1-SNAPSHOT.jar
-
 ./gradlew api-provider:build -x test && java -jar api-provider/build/libs/api-provider-0.0.1-SNAPSHOT.jar
+
 ./gradlew api-consumer:build -x test && java --enable-preview --enable-native-access=ALL-UNNAMED -jar api-consumer/build/libs/api-consumer-0.0.1-SNAPSHOT.jar
 
-curl localhost:7002/product-composite/interface-client/2 -i
-curl localhost:7002/product-composite/rest-client/2 -i
-curl localhost:7002/product-composite/sequential/2 -i
-curl localhost:7002/thread-info
-
-curl localhost:7001/1/product/1 -i
-curl 'localhost:7001/2/recommendation?productId=1' -i
-curl 'localhost:7001/3/review?productId=1' -i 
-
-# kill $(jobs -p)
-
+./test-all-clients.bash
 ```
+
+# Code changes
+
+See https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#starters
+
+## Fine grained deps
+
+E.g.:
+
+1. `RestCLient` and `WebCLient` no longer part of `spring-boot-starter-webmvc/webflux`, now they have their own starters
+1. `@AutoConfigureWebTestClient` required to bind the `WebTestClient` to the test context.   
+    It is no longer suffieicent to declare `@SpringBootTest(webEnvironment = RANDOM_PORT)` on the test class.
+1. New test-dependencies required, e.g. `spring-boot-starter-webflux-test` and `spring-boot-starter-data-mongodb-test`
+1. Package names follow the dependecy names more strictly, e.g. the class `DataMongoTest` is moved from:
+
+       org.springframework.boot.test.autoconfigure.data.mongo
+   To:
+
+       org.springframework.boot.data.mongodb.test.autoconfigure
+1. OTel et al dependencies are now part of a single dependency `spring-boot-starter-opentelemetry`
+
+## OpenRewrite to some help...
+
+**TODO:** Try out on public repo for 4th edition
+* Shortcomings: https://github.com/magnus-larsson/Microservices-with-Spring-Boot-and-Spring-Cloud-3E-INIT/issues/126#issuecomment-3810837234
+* Files: /Users/magnus/Documents/projects/openrewrite/git/openrewrite-migrate-to-sb4/migrate-to-sb4-recipe/init.gradle
+* Command:  ./gradlew --init-script migrate-to-sb4-recipe/init.gradle rewriteRun
+
+## Migrating from Jackson v2 to v3
+
+1. Package rename from `com.fasterxml.jackson` to `tools.jackson`
+2. Replaced `ObjectMapper` with `JsonMapper`.
+3. Fewer checked exceptions are thrown by v3.
+
+# Faste startup with Java AOT Cache
+
+...Java 25 AOT Cache, Build Packs
+
+See https://github.com/magnus-larsson/Microservices-with-Spring-Boot-and-Spring-Cloud-3E-INIT/issues/113
+See /Users/magnus/Documents/projects/cadec2026/SB4.0-bootcamp.pptx
+
+Java 24 & 25 commands
+
+
+BootBuildImage + config in build.gradle
+
+Compare times with and without Docker...
+
+> **NOTE:** Not the same as Spring AOT, see (and its limitations): https://docs.spring.io/spring-boot/reference/packaging/aot.html 
+
 # Fine grained dependencies, smaller jars?
 
-Does it result in smaller jars and memory usage?
+Does the fine grained dependencies result in smaller jars?
 
 SB 4.0.0:
 
@@ -112,6 +141,48 @@ Dependency:
 
     implementation 'org.springframework.boot:spring-boot-starter-opentelemetry'
 
+1. Enable tracing in `application.yml`:
+
+       tracing.export.enabled: true
+
+   * [consumer app-config](./api-consumer/src/main/resources/application.yaml)
+   * [provider app-config](./api-provider/src/main/resources/application.yaml)
+
+
+1. Start Jaeger for OpenTelemetry tracing
+
+```
+docker run -d --name jaeger \
+  -p 16686:16686 \
+  -p 4317:4317 \
+  -p 4318:4318 \
+  -p 5778:5778 \
+  -p 9411:9411 \
+  cr.jaegertracing.io/jaegertracing/jaeger:2.11.0
+```
+
+1. Restart the provider and consumer apps
+
+Try out the three client types
+
+```
+curl localhost:7002/product-composite/sequential/2 -i
+curl localhost:7002/product-composite/rest-client/2 -i
+curl localhost:7002/product-composite/interface-client/2 -i
+```
+
+Check trace i Jaegers Web UI: http://localhost:16686
+
+**Conslusion:** Context propagation currently does not work with Structured Concurrency,   
+see [Micrometer issue: Investigate Scoped Values](https://github.com/micrometer-metrics/context-propagation/issues/108)
+
+Compare with WebFLux and Project Reactor: [Jaeger-SpringBoot4-WebFlux.png](./docs/Jaeger-SpringBoot4-WebFlux.png)
+
+When done:
+
+```
+docker rm -f jaeger
+```
 
 ## Problems with Micrometer and Structured Concurrency:
 
@@ -134,6 +205,9 @@ Dependency:
 
 ## Provider config
 
+* [Open file](./settings.gradle)
+* [java test](./api-consumer/src/test/java/se/magnus/sb4labs/apiconsumer/ApiConsumerApplicationTests.java)
+* [clientInterface](./api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/InterfaceClientsConfig.java)
 ```java
 @Configuration
 public class ApiVersionConfig implements WebMvcConfigurer {
@@ -227,8 +301,8 @@ No problem.
    Verify CB functionality:
 
    ```
-   ./test-resilience.bash
-   IMPL=sequential ./test-resilience.bash
+   ./test-one-client.bash
+   IMPL=sequential ./test-one-client.bash
    ```
 
 10. Logging
@@ -265,7 +339,9 @@ See:
 2. Requires AOT compilation.
    * See examples of extra config required due AOT in CH23 of the MS-book.
 
-# Spring Dev Tools
+# Tooling 
+
+## Spring Dev Tools
 
 See:
 
@@ -273,7 +349,7 @@ See:
 1. https://www.baeldung.com/spring-boot-devtools
 1. https://stackoverflow.com/questions/79306534/intellij-spring-boot-devtools-behavior
 
-1. IntelliJ Spring Debugger...
+1. **IntelliJ Spring Debugger**...
 
 ```
 dependencies {
@@ -293,15 +369,20 @@ Also:
 1. Select "Advanced settings"
 1. In the "Compiler" section, select "Allow auto-make to start even if developed application is currently running"
 
+## IntelliJ Junie AI Agent
+
+Nice to run in brave mode given that tests exists or that tests are generated by the task
+
+Many models are available: 
+
+Open sith: `⌘,`
+
+1. Models: Settings -> Tools -> Junie -> Models
+2. BYOK: Settings -> Tools -> AI Assitent -> Models & API Keys
 
 # TODO
 
 Source: https://spring.io/blog/2025/09/02/road_to_ga_introduction
-
-## jackson 2 -> 3
-
-T ex byta ut ObjectMapper...
-Kolla användning av com.fasterxml.jackson i bokens källkod...
 
 ## resilience
 
@@ -324,9 +405,22 @@ Kolla användning av com.fasterxml.jackson i bokens källkod...
 
 * https://www.moderne.ai/blog/speed-your-spring-boot-3-0-migration
 * https://www.moderne.ai/community
-* https://docs.openrewrite.org/recipes/java/spring/boot4
+* https://docs.openrewrite.org/recipe
+* 
+* s/java/spring/boot4
 * https://docs.openrewrite.org/recipes/java/spring/boot4/upgradespringboot_4_0-community-edition
 * https://docs.openrewrite.org/recipes/java/spring/boot4/upgradespringboot_4_0-moderne-edition
 * https://docs.moderne.io/user-documentation/moderne-cli/getting-started/cli-intro/
 * https://docs.moderne.io/user-documentation/moderne-platform/
  
+# MISC...
+
+Sample curl commands:
+
+```
+curl localhost:7002/thread-info
+
+curl localhost:7001/1/product/1 -i
+curl 'localhost:7001/2/recommendation?productId=1' -i
+curl 'localhost:7001/3/review?productId=1' -i 
+```

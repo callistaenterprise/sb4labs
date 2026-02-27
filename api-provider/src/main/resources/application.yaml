@@ -8,10 +8,10 @@ spring.web.error.include-message: always
 
 management:
   opentelemetry.tracing.export.otlp.endpoint: http://localhost:4318/v1/traces
-  tracing.sampling.probability: 1.0
   otlp.metrics.export.enabled: false
   # Skip tracing, if not required
   tracing.export.enabled: false
+  tracing.sampling.probability: 1.0
 
 logging.level:
   root: INFO
