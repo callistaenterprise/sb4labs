@@ -24,20 +24,27 @@ Three variants:
 Run each command in a separate terminal:
 
 ```
-./gradlew api-provider:build -x test && java -jar api-provider/build/libs/api-provider-0.0.1-SNAPSHOT.jar
-
-./gradlew api-consumer:build -x test && java --enable-preview --enable-native-access=ALL-UNNAMED -jar api-consumer/build/libs/api-consumer-0.0.1-SNAPSHOT.jar
-
-./test-all-clients.bash
+./gradlew api-provider:bootRun
+./gradlew api-consumer:bootRun
+time ./test-all-clients.bash
 ```
+
+Test script:
+* [test all client types](./test-all-clients.bash)
+* [test one client type](./test-one-client.bash)
+
 
 # Code changes
 
-See https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide#starters
+See [Spring Boot 4.0 Migration Guide](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide)
 
 ## Fine grained deps
 
-E.g.:
+Spring Boot 4 breaks up the monolithic `spring-boot-autoconfigure` jar into small and more focused modules. Intended goals are:
+* Maintainability and architectural clarity 
+* Reduced artifact sizes and footprint
+
+Examples:
 
 1. `RestCLient` and `WebCLient` no longer part of `spring-boot-starter-webmvc/webflux`, now they have their own starters
 1. `@AutoConfigureWebTestClient` required to bind the `WebTestClient` to the test context.   
@@ -64,24 +71,9 @@ E.g.:
 2. Replaced `ObjectMapper` with `JsonMapper`.
 3. Fewer checked exceptions are thrown by v3.
 
-# Faste startup with Java AOT Cache
+# Smaller jars?
 
-...Java 25 AOT Cache, Build Packs
-
-See https://github.com/magnus-larsson/Microservices-with-Spring-Boot-and-Spring-Cloud-3E-INIT/issues/113
-See /Users/magnus/Documents/projects/cadec2026/SB4.0-bootcamp.pptx
-
-Java 24 & 25 commands
-
-
-BootBuildImage + config in build.gradle
-
-Compare times with and without Docker...
-
-> **NOTE:** Not the same as Spring AOT, see (and its limitations): https://docs.spring.io/spring-boot/reference/packaging/aot.html 
-
-# Fine grained dependencies, smaller jars?
-
+Fine grained dependencies, smaller jars?
 Does the fine grained dependencies result in smaller jars?
 
 SB 4.0.0:
@@ -135,6 +127,31 @@ Results in:
 
 **Result:** Only dropped from 21 to 19 MB...
 
+# Java AOT Cache
+
+Faster startup with Java AOT Cache
+
+...Java 25 AOT Cache, Build Packs
+
+See https://github.com/magnus-larsson/Microservices-with-Spring-Boot-and-Spring-Cloud-3E-INIT/issues/113
+See /Users/magnus/Documents/projects/cadec2026/SB4.0-bootcamp.pptx
+
+Java 24 & 25 commands
+
+BootBuildImage + config in build.gradle
+
+Compare times with and without Docker...
+
+> **NOTE:** Not the same as Spring AOT, see (and its limitations): https://docs.spring.io/spring-boot/reference/packaging/aot.html 
+
+> **NOTE:** Watch out for libs that connect during startup, e.g. dbs and JWTS lookup
+
+Spring-smoke-test project...
+
+# Null-safe application
+
+TODO...
+
 # Observability
 
 Dependency:
@@ -184,7 +201,7 @@ When done:
 docker rm -f jaeger
 ```
 
-## Problems with Micrometer and Structured Concurrency:
+## More om problems with Micrometer and Structured Concurrency
 
 1. Investigate Scoped Values: https://github.com/micrometer-metrics/context-propagation/issues/108
 2. Discuss Structured Concurrency: https://github.com/micrometer-metrics/context-propagation/issues/419
@@ -203,129 +220,244 @@ docker rm -f jaeger
 
 # API versioning
 
-## Provider config
+API Version can be specified in either:
 
-* [Open file](./settings.gradle)
-* [java test](./api-consumer/src/test/java/se/magnus/sb4labs/apiconsumer/ApiConsumerApplicationTests.java)
-* [clientInterface](./api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/InterfaceClientsConfig.java)
-```java
-@Configuration
-public class ApiVersionConfig implements WebMvcConfigurer {
+1. Request header
+1. Request parameter
+1. Path segment
+1. Media type parameter
 
-  @Override
-  public void configureApiVersioning(ApiVersionConfigurer configurer) {
-    configurer
-      .usePathSegment(0)  // Index of the path segment containing version
-      .addSupportedVersions("1.0", "2.0")
-      .setDefaultVersion("1.0");
-  }
-}
-```
 
-```java
-@GetMapping(
-value = "/{version}/product/{productId}",
-version = "1",
-produces = "application/json")
-Product getProduct(@PathVariable int productId);
-```
+## API Provider
 
-## Consumer config, RestClient
+1. [ApiVersionConfig.java](api-provider/src/main/java/se/magnus/sb4labs/apiprovider/ApiVersionConfig.java)
+2. [ProductRestService.java](api-definitions/src/main/java/se/magnus/sb4labs/api/core/product/ProductRestService.java)
+3. [RecommendationRestService.java](api-definitions/src/main/java/se/magnus/sb4labs/api/core/recommendation/RecommendationRestService.java)
+4. [ReviewRestService.java](api-definitions/src/main/java/se/magnus/sb4labs/api/core/review/ReviewRestService.java)
 
-```java
-  @Bean
-  RestClient restClient() {
-    return RestClient.builder().
-      apiVersionInserter(ApiVersionInserter.usePathSegment(0)).
-      build();
-  }
-```
 
-```java
-      Product product = restClient.get()
-        .uri(url)
-        .apiVersion("1")
-        ...
-```
+## API Consumer, based on a RestClient
 
-## Consumer config, with Interface clients
-
-No problem.
+1. [Configure RestClient](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/ApiConsumerApplication.java)
+2. [Using RestClient](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/ProductCompositeIntegration.java)
 
 # Interface clients
 
-1. OK - API Versioning 
-2. OK - Structured Concurrency
-3. OK - Config of interface clients per API   
-   See ~/Documents/projects/books/5th/git/labs/interface-clients-springio-2025-demo-rstoyanchev/api-service/src/main/resources/application.yml
-5. OK - OpenTelemetry - Tracing   
-   See `ProductCompositeRestController.getProductSequential`
-3. Error handling  
-   ```
-   curl localhost:7001/1/product/-1 -i
-   curl localhost:7001/1/product/13 -i
+Evolved from [Spring Cloud OpenFeign](https://docs.spring.io/spring-cloud-openfeign/docs/current/reference/html/) 
 
-   curl localhost:7002/product-composite/interface-client/-3 -i
+**In essence:** Java interfaces annotated with `@HttpExchange`, and methods annotated with `@GetExchange`. Proxies are created for each interface, and can be used to call HTTP services.
 
-   HTTP/1.1 422
-   Content-Type: application/json
-   Transfer-Encoding: chunked
-   Date: Sun, 04 Jan 2026 14:47:01 GMT
+1. [ProductClient.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/interfaceclients/ProductClient.java)
+2. [RecommendationClient.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/interfaceclients/RecommendationClient.java)
+3. [ReviewClient.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/interfaceclients/ReviewClient.java)
 
-   {"timestamp":"2026-01-04T15:47:01.057647+01:00","path":"/product-composite/interface-client/-3","status":422,"error":"Unprocessable Content","message":"Invalid productId: -3"}%            
+Minimal configuration:
 
-   curl localhost:7002/product-composite/interface-client/13 -i
+[Extract from InterfaceClientsConfig.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/InterfaceClientsConfig.java):
 
-   HTTP/1.1 404
-   Content-Type: application/json
-   Transfer-Encoding: chunked
-   Date: Sun, 04 Jan 2026 14:47:42 GMT
+``` java
+@ImportHttpServices(group = "productGroup", types = ProductClient.class)
+@ImportHttpServices(group = "recommendationGroup", types = RecommendationClient.class)
+@ImportHttpServices(group = "reviewGroup", types = ReviewClient.class)
+@Configuration
+public class InterfaceClientsConfig {
 
-   {"timestamp":"2026-01-04T15:47:42.391106+01:00","path":"/product-composite/interface-client/13","status":404,"error":"Not Found","message":"No product found for productId: 13"}%
-   ```
-4. Circuit Breaker, Retry, and Timeout
-
-   Spring or Resilience4J?   
-   Start with Resilience4J!
-
-   * https://docs.spring.io/spring-cloud-circuitbreaker/docs/current/reference/html/spring-cloud-circuitbreaker-resilience4j.html
-   * https://resilience4j.readme.io/docs/circuitbreaker
-
-   **TODO**: Timeout ger 500 fel, kan man fånga timeout fel och skicka det vidare istället???
-
-   ``` 
-   alias ml-cb='clear; while true; do r=$(curl http://localhost:7002/actuator/circuitbreakers -s | jq -r .circuitBreakers.productGroup.state); sleep 1; clear; echo $r; done'
-   alias ml-health='clear; while true; do r=$(curl http://localhost:7002/actuator/health -s | jq -r .status); sleep 1; clear; echo $r; done'
-   ```
-   
-   Verify CB functionality:
-
-   ```
-   ./test-one-client.bash
-   IMPL=sequential ./test-one-client.bash
-   ```
-
-10. Logging
-11. Security
-
-# Resilience
-
-## FaultRate
-
-```
-curl 'http://localhost:7001/1/faultrate?probability=75' -X PUT
-curl http://localhost:7001/1/faultrate
+  @Bean
+  RestClientHttpServiceGroupConfigurer groupConfigurer() {
+    return groups -> {
+      groups.forEachClient((group, builder) -> {
+        builder
+          .defaultHeader("Accept", "application/json");
+      });
+    };
+  }
 ```
 
-## Retryable
+[Extract from application.yaml](api-consumer/src/main/resources/application.yaml):
 
-## CircuitBreaker
+``` yaml
+spring.http:serviceclient:
+  
+  productGroup:
+    base-url: http://localhost:7001
 
-See `Interface clients`!
+  recommendationGroup:
+    base-url: http://localhost:7001
 
-## ConcurrencyLimit
+  reviewGroup:
+    base-url: http://localhost:7001
+```
 
-# Spring Data Ahead of Time Repositories
+Usage:
+
+``` java
+  final private ProductClient productClient;
+
+  public ProductCompositeRestController(ProductClient productClient) {
+    this.productClient = productClient;
+  }
+
+  ProductAggregate getProduct(int productId) {
+    var product = productClient.getProduct(productId);
+  }
+```
+
+What about:
+1. API Versioning?
+2. Logging?
+3. Error handling?
+4. Resilience?
+5. Circuit Breaker?
+   1. Time Limiter
+   2. Retry
+   3. Circuit Breaker
+6. Structured Concurrency?
+7. Distributed Tracing?
+8. Security?
+
+Generic blog posts (more or less AI-generated...) don't cover this level of details, e.g., https://www.danvega.dev/blog/http-interfaces-spring-boot-4...
+
+## API Versioning?
+
+[Additions in InterfaceClientsConfig.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/InterfaceClientsConfig.java):
+
+```
+  @Bean
+  RestClientHttpServiceGroupConfigurer groupConfigurer() {
+    return groups -> {
+      groups.forEachClient((group, builder) -> {
+        builder
+          .defaultHeader("Accept", "application/json")
+          .apiVersionInserter(ApiVersionInserter.usePathSegment(0)) // ADDED FOR API VERSIONING
+```
+
+[Additions in application.yaml](api-consumer/src/main/resources/application.yaml):
+
+```
+    productGroup:
+      base-url: http://localhost:7001
+      apiversion.default: 1 # ADDED FOR API VERSIONING
+
+    recommendationGroup:
+      base-url: http://localhost:7001
+      apiversion.default: 2 # ADDED FOR API VERSIONING
+
+    reviewGroup:
+      base-url: http://localhost:7001
+      apiversion.default: 3 # ADDED FOR API VERSIONING
+```
+
+## Logging?
+
+[Additions in InterfaceClientsConfig.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/InterfaceClientsConfig.java):
+
+```
+  @Bean
+  RestClientHttpServiceGroupConfigurer groupConfigurer() {
+    return groups -> {
+      groups.forEachClient((group, builder) -> {
+        builder
+          .defaultHeader("Accept", "application/json")
+          .apiVersionInserter(ApiVersionInserter.usePathSegment(0)) 
+          .requestInterceptor(new LoggingInterceptor()); // ADDED FOR LOGGING
+  ...
+  
+  private static class LoggingInterceptor implements ClientHttpRequestInterceptor {
+    public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
+
+      LOG.info("""
+        Performing request: {} {}
+        Headers: {}
+        """, request.getMethod(), request.getURI(), request.getHeaders());
+
+      ClientHttpResponse response = execution.execute(request, body);
+
+      LOG.info("""
+        Response, status code: {}
+        Headers: {}
+        """, response.getStatusCode(), response.getHeaders());
+
+      return response;
+    }
+  }
+```
+
+## Error handling?
+
+[Additions in InterfaceClientsConfig.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/InterfaceClientsConfig.java):
+
+```
+  @Bean
+  RestClientHttpServiceGroupConfigurer groupConfigurer() {
+    return groups -> {
+      groups.forEachClient((group, builder) -> {
+        builder
+          .defaultHeader("Accept", "application/json")
+          .apiVersionInserter(ApiVersionInserter.usePathSegment(0)) 
+          .defaultStatusHandler(this::shallErrorBeHandled, this::handleError) // ADDED FOR LOGGING
+          .requestInterceptor(new LoggingInterceptor());
+  ...
+
+  private boolean shallErrorBeHandled(HttpStatusCode status) {
+    if (status.isError()) LOG.warn("Checking an HTTP error: {}", status.value());
+    return status.isSameCodeAs(NOT_FOUND) || status.isSameCodeAs(UNPROCESSABLE_CONTENT);
+  }
+
+  private void handleError(HttpRequest request, ClientHttpResponse response) throws IOException {
+
+    switch (response.getStatusCode()) {
+      case NOT_FOUND:
+        LOG.warn("Got an NOT_FOUND HTTP error response");
+        throw new NotFoundException(getErrorMessage(response));
+      case UNPROCESSABLE_CONTENT:
+        LOG.warn("Got an UNPROCESSABLE_CONTENT HTTP error response");
+        throw new InvalidInputException(getErrorMessage(response));
+      default:
+        LOG.warn("Got an unexpected HTTP error: {}...", response.getStatusCode().value());
+        throw new IllegalStateException("Unexpected HTTP error: " + response.getStatusCode().value());
+    }
+  }
+```
+
+## Resilience?
+
+Focus on time limiter, retry, and circuit breaker.
+
+Alternatives:
+
+1. Resilience4J
+2. Spring Cloud Circuit Breaker
+3. NEW in Spring Framework 7: ConcurrencyLimit and Retryable
+
+Since a **Circuit Breaker** is the most important resilience feature in my mind, I chose Spring Cloud Circuit Breaker, using Resilience4J as the underlying library.
+
+Spring Cloud Circuit Breaker comes with builtin support for Interface clients using `@HttpServiceFallback` annotations, lacking in Resilience4J.
+
+1. [ProductClientFallbackConfig.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/interfaceclients/resilience/ProductClientFallbackConfig.java)
+2. [ProductFallbacks.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/interfaceclients/resilience/ProductFallbacks.java)
+3. [GetProductFallback.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/interfaceclients/resilience/GetProductFallback.java)
+4. [Config of Resilience4J in application.yaml](api-consumer/src/main/resources/application.yaml)
+
+## Structured Concurrency?
+
+Works out of the box. See `getProductWithInterfaceClients()` in:
+* [ProductCompositeRestController.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/ProductCompositeRestController.java)
+
+## Distributed Tracing?
+
+Workes out of the box, the underlying HTTP client (i.e., RestProxy or WebProxy) handles the W3C Context propagation. See `getProductSequential()` in:
+* [ProductCompositeRestController.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/ProductCompositeRestController.java)
+
+
+
+
+## Security?
+
+
+
+# Spring Data AOT Repositories
+
+Spring Data Ahead of Time Repositories...
 
 See:
 
@@ -339,88 +471,3 @@ See:
 2. Requires AOT compilation.
    * See examples of extra config required due AOT in CH23 of the MS-book.
 
-# Tooling 
-
-## Spring Dev Tools
-
-See:
-
-1. https://docs.spring.io/spring-boot/reference/using/devtools.html
-1. https://www.baeldung.com/spring-boot-devtools
-1. https://stackoverflow.com/questions/79306534/intellij-spring-boot-devtools-behavior
-
-1. **IntelliJ Spring Debugger**...
-
-```
-dependencies {
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
-}
-```
-
-In addition to installing spring-boot-devtools, you also need to enable automatic build in IntelliJ.
-
-1. Open "Settings"
-1. Select "Build, Execution, Deployment"
-1. On the "Compiler" page, select "Build project automatically"
-
-Also:
-
-1. Open "Settings"
-1. Select "Advanced settings"
-1. In the "Compiler" section, select "Allow auto-make to start even if developed application is currently running"
-
-## IntelliJ Junie AI Agent
-
-Nice to run in brave mode given that tests exists or that tests are generated by the task
-
-Many models are available: 
-
-Open sith: `⌘,`
-
-1. Models: Settings -> Tools -> Junie -> Models
-2. BYOK: Settings -> Tools -> AI Assitent -> Models & API Keys
-
-# TODO
-
-Source: https://spring.io/blog/2025/09/02/road_to_ga_introduction
-
-## resilience
-
-## opentelemetry
-
-## AOT Cache in Java 25
-
-## Null safety + my open rewrite
-
-## HTTP Service clients
-
-* https://docs.spring.io/spring-boot/reference/io/rest-client.html#io.rest-client.httpservice
-* https://docs.spring.io/spring-framework/reference/integration/rest-clients.html#rest-http-service-client
-
-## Pkce SA Server
-
-## Spring Data Aot repo
-
-## Migrering & open rewrite
-
-* https://www.moderne.ai/blog/speed-your-spring-boot-3-0-migration
-* https://www.moderne.ai/community
-* https://docs.openrewrite.org/recipe
-* 
-* s/java/spring/boot4
-* https://docs.openrewrite.org/recipes/java/spring/boot4/upgradespringboot_4_0-community-edition
-* https://docs.openrewrite.org/recipes/java/spring/boot4/upgradespringboot_4_0-moderne-edition
-* https://docs.moderne.io/user-documentation/moderne-cli/getting-started/cli-intro/
-* https://docs.moderne.io/user-documentation/moderne-platform/
- 
-# MISC...
-
-Sample curl commands:
-
-```
-curl localhost:7002/thread-info
-
-curl localhost:7001/1/product/1 -i
-curl 'localhost:7001/2/recommendation?productId=1' -i
-curl 'localhost:7001/3/review?productId=1' -i 
-```

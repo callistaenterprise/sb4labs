@@ -8,7 +8,7 @@
 #
 #   IMPL=sequential ./test-one-client.bash
 #
-# TODO: Resilience functions not working!
+# TODO: Resilience functions currently not working for rest-client!
 # Test the Rest Client:
 #
 #   IMPL=rest-client ./test-one-client.bash
@@ -40,7 +40,7 @@ function assertCurl() {
     then
       echo "Test OK (HTTP Code: $httpCode)"
     else
-      echo "Test OK (HTTP Code: $httpCode, $RESPONSE)"
+      echo "Test OK (HTTP Code: $httpCode, $RESPONSE)" # ${RESPONSE:0:300})"
     fi
   else
     echo  "Test FAILED, EXPECTED HTTP Code: $expectedHttpCode, GOT: $httpCode, WILL ABORT!"
@@ -60,6 +60,19 @@ function assertEqual() {
     echo "Test OK (actual value: $actual)"
   else
     echo "Test FAILED, EXPECTED VALUE: $expected, ACTUAL VALUE: $actual, WILL ABORT"
+    exit 1
+  fi
+}
+
+function assertSubstring() {
+
+  local expectedSubstring=$1
+  local actual=$2
+
+  if [[ "$actual" =~ "$expectedSubstring" ]]; then
+    echo "Test OK (actual value: $actual)"
+  else
+    echo "Test FAILED, EXPECTED SUBSTRING: $expectedSubstring, ACTUAL VALUE: $actual, WILL ABORT"
     exit 1
   fi
 }
@@ -98,7 +111,7 @@ function testCircuitBreaker() {
     echo "Start Circuit Breaker tests!"
 
     # Ensure that the circuit breaker is getting closed
-    for ((n=0; n<5; n++)); do assertCurl 200 "curl http://$HOST:$PORT/product-composite/$IMPL/$PROD_ID_OK  -s"; done
+    for ((n=0; n<10; n++)); do assertCurl 200 "curl http://$HOST:$PORT/product-composite/$IMPL/$PROD_ID_OK  -s"; done
 
     # First, use the product-composite health - endpoint to verify that the circuit breaker is closed
     assertCurl 200 "curl -s http://$HOST:$PORT/actuator/circuitbreakers"
@@ -106,13 +119,11 @@ function testCircuitBreaker() {
 
     # Open the circuit breaker by running three slow calls in a row, i.e. that cause a timeout exception
     # Also, verify that we get 500 back and a timeout related error message
-    # TODO: for ((n=0; n<3; n++))
     for ((n=0; n<5; n++))
     do
         assertCurl 500 "curl http://$HOST:$PORT/product-composite/$IMPL/$PROD_ID_OK?delay=3  -s" NoRetries
         message=$(echo $RESPONSE | jq -r .message)
-        # TODO: Returns another and much longer error message
-        # assertEqual "Did not observe any item or terminal signal within 2000ms" "${message:0:57}"
+        assertSubstring "java.util.concurrent.ExecutionException: org.springframework.web.client.ResourceAccessException: I/O error on GET request" "$message"
     done
 
     # Verify that the circuit breaker is open
@@ -141,7 +152,6 @@ function testCircuitBreaker() {
 
     # Close the circuit breaker by running three normal calls in a row
     # Also, verify that we get 200 back and a response based on information in the product database
-    # TODO: for ((n=0; n<3; n++))
     for ((n=0; n<5; n++))
     do
         assertCurl 200 "curl http://$HOST:$PORT/product-composite/$IMPL/$PROD_ID_OK  -s"
@@ -200,11 +210,10 @@ assertEqual "\"Invalid productId: -1\"" "$(echo $RESPONSE | jq .message)"
 
 # Verify that a 400 (Bad Request) error error is returned for a productId that is not a number, i.e. invalid format
 assertCurl 400 "curl http://$HOST:$PORT/product-composite/$IMPL/invalidProductId -s"
-# TODO: Returns another and much longer error message
-# assertEqual "\"Type mismatch.\"" "$(echo $RESPONSE | jq .message)"
+assertSubstring "Method parameter 'productId': Failed to convert value of type 'java.lang.String' to required type 'int'; For input string: \\\"invalidProductId\\\"" "$(echo $RESPONSE | jq .message)"
 
 if [ "$IMPL" = "rest-client" ]; then
-  echo ### SKIPPING testCircuitBreaker, CURRENTLY OUT-OF-ORDER..."
+  echo "### SKIPPING testCircuitBreaker for '$IMPL', CURRENTLY OUT-OF-ORDER..."
 else
   testCircuitBreaker
 fi

@@ -11,6 +11,5 @@ import java.util.List;
 public interface RecommendationClient {
 
   @GetExchange
-  List<Recommendation> getRecommendations(
-    @RequestParam int productId);
+  List<Recommendation> getRecommendations(@RequestParam int productId);
 }

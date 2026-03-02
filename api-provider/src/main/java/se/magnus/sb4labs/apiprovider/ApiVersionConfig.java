@@ -10,8 +10,12 @@ public class ApiVersionConfig implements WebMvcConfigurer {
   @Override
   public void configureApiVersioning(ApiVersionConfigurer configurer) {
     configurer
-      .usePathSegment(0)  // Index of the path segment containing version
-      .addSupportedVersions("1.0", "2.0")
-      .setDefaultVersion("1.0");
+      .usePathSegment(0);  // Index of the path segment containing version
+//    .useRequestHeader("api-version")
+//    .useQueryParam("api-version")
+//    .useMediaTypeParameter(MediaType.APPLICATION_JSON, "api-version")
+//    .addSupportedVersions("1.0", "2.0")
+//    .setDefaultVersion("1.0")
+    ;
   }
 }

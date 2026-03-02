@@ -91,9 +91,9 @@ public class InterfaceClientsConfig {
       HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
 
       LOG.info("""
-				Performing request: {} {}
-				Headers: {}
-				""", request.getMethod(), request.getURI(), request.getHeaders());
+        Performing request: {} {}
+        Headers: {}
+        """, request.getMethod(), request.getURI(), request.getHeaders());
 
       ClientHttpResponse response = execution.execute(request, body);
 

@@ -3,8 +3,12 @@ spring.application.name: api-consumer
 
 spring.threads.virtual.enabled: true
 
-# Helps testing, should be set to never in production
+# Avoid sharing implementation details in error messages from the web server
+# The error message is included to simplify testing, but should be avoided in production!
 spring.web.error.include-message: always
+spring.web.error.include-stacktrace: never
+spring.web.error.include-binding-errors: never
+spring.web.error.include-exception: false
 
 management:
   endpoints.web.exposure.include: health,info,circuitbreakers,circuitbreakerevents
@@ -36,6 +40,9 @@ spring.http:
     productGroup:
       base-url: http://localhost:7001
       apiversion.default: 1
+    #     default-header:
+    #       -Accept: application/json
+    #     apiversion.insert.path-segment: 0
 
     recommendationGroup:
       base-url: http://localhost:7001
@@ -44,9 +51,6 @@ spring.http:
     reviewGroup:
       base-url: http://localhost:7001
       apiversion.default: 3
-#     default-header:
-#       -Accept: application/json
-#     apiversion.insert.path-segment: 0
 
 app:
   product-service:
@@ -62,16 +66,20 @@ app:
     port: 7001
     apiversion: 3
 
-# Suggestion from ChatGPT
-
-#spring:
-#  http:
-#    serviceclient:
-#      productGroup:
-#        connect-timeout: 500ms
-#        read-timeout: 500ms
+spring:
+  cloud:
+    circuitbreaker:
+      resilience4j:
+        disable-time-limiter: true
 
 resilience4j:
+
+# Resilience4J time limiter replaced by with spring.http.clients.read-timeout
+#  timelimiter:
+#    instances:
+#      productGroup:
+#        timeoutDuration: 2s
+
   retry:
     instances:
       productGroup:
@@ -89,19 +97,6 @@ resilience4j:
         ignoreExceptions:
           - se.magnus.sb4labs.api.exceptions.InvalidInputException
           - se.magnus.sb4labs.api.exceptions.NotFoundException
-
-# MY OWN CONFIG
-
-resilience4j.timelimiter:
-  instances:
-    productGroup:
-      timeoutDuration: 20s
-
-spring:
-  cloud:
-    circuitbreaker:
-      resilience4j:
-        disable-time-limiter: true
 
 ########
 # For RestCLient based CircuitBreaker

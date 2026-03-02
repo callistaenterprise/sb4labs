@@ -7,8 +7,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.web.client.ApiVersionInserter;
 import org.springframework.web.client.RestClient;
+
+import static org.springframework.web.client.ApiVersionInserter.usePathSegment;
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
@@ -20,7 +21,7 @@ public class ApiConsumerApplication {
   @Bean
   RestClient restClient() {
     return RestClient.builder().
-      apiVersionInserter(ApiVersionInserter.usePathSegment(0)).
+      apiVersionInserter(usePathSegment(0)).
       build();
   }
 
