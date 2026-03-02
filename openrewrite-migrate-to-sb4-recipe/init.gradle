@@ -1,0 +1,30 @@
+//
+// Usage:
+//   ./gradlew --init-script ${PATH_TO_THIS_FOLDER}/openrewrite-migrate-to-sb4-recipe/init.gradle rewriteRun
+//
+initscript {
+    repositories {
+        maven { url "https://plugins.gradle.org/m2" }
+    }
+    dependencies { classpath("org.openrewrite:plugin:7.25.0") }
+}
+rootProject {
+    plugins.apply(org.openrewrite.gradle.RewritePlugin)
+    dependencies {
+        rewrite(platform("org.openrewrite.recipe:rewrite-recipe-bom:3.23.0"))
+        rewrite("org.openrewrite.recipe:rewrite-spring")
+    }
+    rewrite {
+        activeRecipe(
+            "org.openrewrite.java.OrderImports",
+            "org.openrewrite.java.spring.boot4.UpgradeSpringBoot_4_0")
+        setExportDatatables(true)
+    }
+    afterEvaluate {
+        if (repositories.isEmpty()) {
+            repositories {
+                mavenCentral()
+            }
+        }
+    }
+}

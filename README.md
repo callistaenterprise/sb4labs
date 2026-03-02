@@ -60,10 +60,58 @@ Examples:
 
 ## 3.2. OpenRewrite to some help...
 
-**TODO:** Try out on public repo for 4th edition
-* Shortcomings: https://github.com/magnus-larsson/Microservices-with-Spring-Boot-and-Spring-Cloud-3E-INIT/issues/126#issuecomment-3810837234
-* Files: /Users/magnus/Documents/projects/openrewrite/git/openrewrite-migrate-to-sb4/migrate-to-sb4-recipe/init.gradle
-* Command:  ./gradlew --init-script migrate-to-sb4-recipe/init.gradle rewriteRun
+Not an expert in OpenRewrite, but I have compiled a Gradle init script to try out `org.openrewrite.java.spring.boot4.UpgradeSpringBoot_4_0`.
+
+Try it out:
+
+```
+git clone git@github.com:PacktPublishing/Microservices-with-Spring-Boot-and-Spring-Cloud-Fourth-Edition.git ms-sb-3.5
+cd ms-sb-3.5/Chapter04
+./gradlew --init-script ${PATH-TOSB4LABS}/openrewrite-migrate-to-sb4-recipe/init.gradle rewriteRun
+```
+
+Check changes:
+
+``` bash
+git status
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   api/build.gradle
+	modified:   gradle/wrapper/gradle-wrapper.properties
+	modified:   microservices/product-composite-service/build.gradle
+	modified:   microservices/product-composite-service/src/main/java/se/magnus/microservices/composite/product/services/ProductCompositeIntegration.java
+	modified:   microservices/product-composite-service/src/main/resources/application.yml
+	modified:   microservices/product-service/build.gradle
+	modified:   microservices/product-service/src/main/resources/application.yml
+	modified:   microservices/recommendation-service/build.gradle
+	modified:   microservices/recommendation-service/src/main/resources/application.yml
+	modified:   microservices/review-service/build.gradle
+	modified:   microservices/review-service/src/main/resources/application.yml
+	modified:   util/build.gradle
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	microservices/product-composite-service/src/main/resources/application-docker.yml
+	microservices/product-service/src/main/resources/application-docker.yml
+	microservices/recommendation-service/src/main/resources/application-docker.yml
+	microservices/review-service/src/main/resources/application-docker.yml
+```
+
+Initial analysis of the result:
+
+1. Compile fails
+1. Doesn't remove unused try/catch for `IOException` in` ProductCompositeIntegration.getErrorMessage()`
+1. Tests fails for product-service
+   - Missed to add dependency to `testImplementation 'org.springframework.boot:spring-boot-webflux-test'` 
+   - Missing to add the `@AutoConfigureWebTestClient` annotation
+   - Failed to change `UNPROCESSABLE_ENTITY` --> `UNPROCESSABLE_CONTENT`
+1. ...remaining tests...
+
+**RESULT:** ...maybe I failed to find all open source receipts for migration to Spring Boot 4.0, but this result is fairly poor...
 
 ## 3.3. Migrating from Jackson v2 to v3
 
@@ -449,12 +497,9 @@ Works out of the box. See `getProductWithInterfaceClients()` in:
 Workes out of the box, the underlying HTTP client (i.e., RestProxy or WebProxy) handles the W3C Context propagation. See `getProductSequential()` in:
 * [ProductCompositeRestController.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/ProductCompositeRestController.java)
 
-
-
-
 ## 9.7. Security?
 
-
+**TODO:** Add references to docs...
 
 # 10. Spring Data AOT Repositories
 
@@ -470,5 +515,5 @@ See:
 
 1. Does not support reactive JPA repositories.
 2. Requires AOT compilation.
-   * See examples of extra config required due AOT in CH23 of the MS-book.
+   * **TODO:** See examples of extra config required due AOT in CH23 of the MS-book.
 
