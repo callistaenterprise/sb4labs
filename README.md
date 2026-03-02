@@ -1,4 +1,4 @@
-# Overview
+# 1. Overview
 
 ```mermaid
 graph TD;
@@ -19,7 +19,7 @@ Three variants:
 
 > **NOTE:** For simplicity, one API PRovider implementans all three core services
 
-# Build, run, and test
+# 2. Build, run, and test
 
 Run each command in a separate terminal:
 
@@ -34,11 +34,11 @@ Test script:
 * [test one client type](./test-one-client.bash)
 
 
-# Code changes
+# 3. Code changes
 
 See [Spring Boot 4.0 Migration Guide](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide)
 
-## Fine grained deps
+## 3.1. Fine grained deps
 
 Spring Boot 4 breaks up the monolithic `spring-boot-autoconfigure` jar into small and more focused modules. Intended goals are:
 * Maintainability and architectural clarity 
@@ -58,20 +58,20 @@ Examples:
        org.springframework.boot.data.mongodb.test.autoconfigure
 1. OTel et al dependencies are now part of a single dependency `spring-boot-starter-opentelemetry`
 
-## OpenRewrite to some help...
+## 3.2. OpenRewrite to some help...
 
 **TODO:** Try out on public repo for 4th edition
 * Shortcomings: https://github.com/magnus-larsson/Microservices-with-Spring-Boot-and-Spring-Cloud-3E-INIT/issues/126#issuecomment-3810837234
 * Files: /Users/magnus/Documents/projects/openrewrite/git/openrewrite-migrate-to-sb4/migrate-to-sb4-recipe/init.gradle
 * Command:  ./gradlew --init-script migrate-to-sb4-recipe/init.gradle rewriteRun
 
-## Migrating from Jackson v2 to v3
+## 3.3. Migrating from Jackson v2 to v3
 
 1. Package rename from `com.fasterxml.jackson` to `tools.jackson`
 2. Replaced `ObjectMapper` with `JsonMapper`.
 3. Fewer checked exceptions are thrown by v3.
 
-# Smaller jars?
+# 4. Smaller jars?
 
 Fine grained dependencies, smaller jars?
 Does the fine grained dependencies result in smaller jars?
@@ -127,7 +127,7 @@ Results in:
 
 **Result:** Only dropped from 21 to 19 MB...
 
-# Java AOT Cache
+# 5. Java AOT Cache
 
 Faster startup with Java AOT Cache
 
@@ -148,11 +148,11 @@ Compare times with and without Docker...
 
 Spring-smoke-test project...
 
-# Null-safe application
+# 6. Null-safe application
 
 TODO...
 
-# Observability
+# 7. Observability
 
 Dependency:
 
@@ -201,7 +201,7 @@ When done:
 docker rm -f jaeger
 ```
 
-## More om problems with Micrometer and Structured Concurrency
+## 7.1. More om problems with Micrometer and Structured Concurrency
 
 1. Investigate Scoped Values: https://github.com/micrometer-metrics/context-propagation/issues/108
 2. Discuss Structured Concurrency: https://github.com/micrometer-metrics/context-propagation/issues/419
@@ -218,7 +218,7 @@ docker rm -f jaeger
 >
 >     spring.reactor.context-propagation: AUTO
 
-# API versioning
+# 8. API versioning
 
 API Version can be specified in either:
 
@@ -228,20 +228,19 @@ API Version can be specified in either:
 1. Media type parameter
 
 
-## API Provider
+## 8.1. API Provider
 
 1. [ApiVersionConfig.java](api-provider/src/main/java/se/magnus/sb4labs/apiprovider/ApiVersionConfig.java)
 2. [ProductRestService.java](api-definitions/src/main/java/se/magnus/sb4labs/api/core/product/ProductRestService.java)
 3. [RecommendationRestService.java](api-definitions/src/main/java/se/magnus/sb4labs/api/core/recommendation/RecommendationRestService.java)
 4. [ReviewRestService.java](api-definitions/src/main/java/se/magnus/sb4labs/api/core/review/ReviewRestService.java)
 
+## 8.2. API Consumer, based on a RestClient
 
-## API Consumer, based on a RestClient
+1. [Configure RestClient in ApiConsumerApplication.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/ApiConsumerApplication.java)
+2. [Using RestClient in ProductCompositeIntegration.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/ProductCompositeIntegration.java)
 
-1. [Configure RestClient](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/ApiConsumerApplication.java)
-2. [Using RestClient](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/ProductCompositeIntegration.java)
-
-# Interface clients
+# 9. Interface HTTP clients
 
 Evolved from [Spring Cloud OpenFeign](https://docs.spring.io/spring-cloud-openfeign/docs/current/reference/html/) 
 
@@ -302,7 +301,9 @@ Usage:
   }
 ```
 
-What about:
+Eliminates the need of [ProductCompositeIntegration.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/ProductCompositeIntegration.java), **GREAT!!!**
+
+...but what about:
 1. API Versioning?
 2. Logging?
 3. Error handling?
@@ -317,7 +318,7 @@ What about:
 
 Generic blog posts (more or less AI-generated...) don't cover this level of details, e.g., https://www.danvega.dev/blog/http-interfaces-spring-boot-4...
 
-## API Versioning?
+## 9.1. API Versioning?
 
 [Additions in InterfaceClientsConfig.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/InterfaceClientsConfig.java):
 
@@ -347,7 +348,7 @@ Generic blog posts (more or less AI-generated...) don't cover this level of deta
       apiversion.default: 3 # ADDED FOR API VERSIONING
 ```
 
-## Logging?
+## 9.2. Logging?
 
 [Additions in InterfaceClientsConfig.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/InterfaceClientsConfig.java):
 
@@ -382,7 +383,7 @@ Generic blog posts (more or less AI-generated...) don't cover this level of deta
   }
 ```
 
-## Error handling?
+## 9.3. Error handling?
 
 [Additions in InterfaceClientsConfig.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/InterfaceClientsConfig.java):
 
@@ -419,7 +420,7 @@ Generic blog posts (more or less AI-generated...) don't cover this level of deta
   }
 ```
 
-## Resilience?
+## 9.4. Resilience?
 
 Focus on time limiter, retry, and circuit breaker.
 
@@ -438,12 +439,12 @@ Spring Cloud Circuit Breaker comes with builtin support for Interface clients us
 3. [GetProductFallback.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/interfaceclients/resilience/GetProductFallback.java)
 4. [Config of Resilience4J in application.yaml](api-consumer/src/main/resources/application.yaml)
 
-## Structured Concurrency?
+## 9.5. Structured Concurrency?
 
 Works out of the box. See `getProductWithInterfaceClients()` in:
 * [ProductCompositeRestController.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/ProductCompositeRestController.java)
 
-## Distributed Tracing?
+## 9.6. Distributed Tracing?
 
 Workes out of the box, the underlying HTTP client (i.e., RestProxy or WebProxy) handles the W3C Context propagation. See `getProductSequential()` in:
 * [ProductCompositeRestController.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/ProductCompositeRestController.java)
@@ -451,11 +452,11 @@ Workes out of the box, the underlying HTTP client (i.e., RestProxy or WebProxy) 
 
 
 
-## Security?
+## 9.7. Security?
 
 
 
-# Spring Data AOT Repositories
+# 10. Spring Data AOT Repositories
 
 Spring Data Ahead of Time Repositories...
 
