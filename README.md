@@ -30,8 +30,8 @@ time ./test-all-clients.bash
 ```
 
 Test script:
-* [test all client types](./test-all-clients.bash)
-* [test one client type](./test-one-client.bash)
+* [test all client types](test-all-clients.bash)
+* [test one client type](test-one-client.bash)
 
 
 # 3. Code changes
@@ -61,6 +61,8 @@ Examples:
 ## 3.2. OpenRewrite to some help...
 
 Not an expert in OpenRewrite, but I have compiled a Gradle init script to try out `org.openrewrite.java.spring.boot4.UpgradeSpringBoot_4_0`.
+
+* [init.gradle](openrewrite-migrate-to-sb4-recipe/init.gradle)
 
 Try it out:
 
@@ -181,7 +183,7 @@ Faster startup with Java AOT Cache
 
 ...Java 25 AOT Cache, Build Packs
 
-See https://github.com/magnus-larsson/Microservices-with-Spring-Boot-and-Spring-Cloud-3E-INIT/issues/113
+**TODO:** See https://github.com/magnus-larsson/Microservices-with-Spring-Boot-and-Spring-Cloud-3E-INIT/issues/113
 See /Users/magnus/Documents/projects/cadec2026/SB4.0-bootcamp.pptx
 
 Java 24 & 25 commands
@@ -356,13 +358,13 @@ Eliminates the need of [ProductCompositeIntegration.java](api-consumer/src/main/
 2. Logging?
 3. Error handling?
 4. Resilience?
-5. Circuit Breaker?
    1. Time Limiter
    2. Retry
    3. Circuit Breaker
-6. Structured Concurrency?
-7. Distributed Tracing?
-8. Security?
+5. Structured Concurrency?
+6. Distributed Tracing?
+7. Security?
+8. GraalVM Native Compile?
 
 Generic blog posts (more or less AI-generated...) don't cover this level of details, e.g., https://www.danvega.dev/blog/http-interfaces-spring-boot-4...
 
@@ -494,14 +496,22 @@ Works out of the box. See `getProductWithInterfaceClients()` in:
 
 ## 9.6. Distributed Tracing?
 
-Workes out of the box, the underlying HTTP client (i.e., RestProxy or WebProxy) handles the W3C Context propagation. See `getProductSequential()` in:
+Works out of the box, the underlying HTTP client (i.e., RestProxy or WebProxy) handles the W3C Context propagation. See `getProductSequential()` in:
 * [ProductCompositeRestController.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/ProductCompositeRestController.java)
 
 ## 9.7. Security?
 
-**TODO:** Add references to docs...
+No autoconfiguration for OAuth in place yet!
+
+Track progress in: [Issue #46956: Add Autoconfiguration for OAuth2 + Interface HTTP Clients](https://github.com/spring-projects/spring-boot/issues/46956)
+
+## 9.8. GraalVM Native Compile
+
+**TODO:** Not yet tested...
 
 # 10. Spring Data AOT Repositories
+
+**TODO:** Add some more text...
 
 Spring Data Ahead of Time Repositories...
 
@@ -516,4 +526,14 @@ See:
 1. Does not support reactive JPA repositories.
 2. Requires AOT compilation.
    * **TODO:** See examples of extra config required due AOT in CH23 of the MS-book.
+     See https://docs.spring.io/spring-boot/how-to/aot.html#howto.aot.conditions
 
+From [my book, 4rt ed, Chapter 23](https://github.com/PacktPublishing/Microservices-with-Spring-Boot-and-Spring-Cloud-Fourth-Edition/blob/main/Chapter23/microservices/product-composite-service/src/main/resources/application.yml)
+
+```
+# Required to make the Spring AOT engine generate the appropriate infrastructure for a separate management port, prometheus and K8S probes at build time
+management.server.port: 9009
+
+# Required to make the Spring AOT engine generate a ReactiveJwtDecoder for the OIDC Issuer
+spring.security.oauth2.resourceserver.jwt.issuer-uri: http://someissuer
+```
