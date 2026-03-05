@@ -110,8 +110,7 @@ Initial analysis of the result:
 1. Tests fails for product-service
    - Missed to add dependency to `testImplementation 'org.springframework.boot:spring-boot-webflux-test'` 
    - Missing to add the `@AutoConfigureWebTestClient` annotation
-   - Failed to change `UNPROCESSABLE_ENTITY` --> `UNPROCESSABLE_CONTENT`
-1. ...remaining tests...
+   - Failed to change contants that changed name, e.g. `UNPROCESSABLE_ENTITY` --> `UNPROCESSABLE_CONTENT`
 
 **RESULT:** ...maybe I failed to find all open source receipts for migration to Spring Boot 4.0, but this result is fairly poor...
 
@@ -175,28 +174,99 @@ Results in:
 -rw-r--r--@ 1 magnus  staff  21044297 Dec 17 09:01 build/libs/sb358-0.0.1-SNAPSHOT.jar```
 ```
 
-**Result:** Only dropped from 21 to 19 MB...
+**Result:** Only dropped from 21 to 19 MB, a bit disappointing...
 
 # 5. Java AOT Cache
 
-Faster startup with Java AOT Cache
+Faster startup with Java AOT Cache, based on App CDS
 
-...Java 25 AOT Cache, Build Packs
+Build jar-files:
 
-**TODO:** See https://github.com/magnus-larsson/Microservices-with-Spring-Boot-and-Spring-Cloud-3E-INIT/issues/113
-See /Users/magnus/Documents/projects/cadec2026/SB4.0-bootcamp.pptx
+```
+./gradlew build
+```
 
-Java 24 & 25 commands
+Start with plain jar-file:
 
-BootBuildImage + config in build.gradle
+```
+java -jar api-provider/build/libs/api-provider-0.0.1-SNAPSHOT.jar
+# Started ApiProviderApplication in 1.213 seconds (process running for 1.466)
+```
+AOT Cache with Java 24 commands:
 
-Compare times with and without Docker...
+```
+# Create AOT Cache
+java -XX:AOTMode=record -XX:AOTConfiguration=app.aotconf -Dspring.context.exit=onRefresh -jar api-provider/build/libs/api-provider-0.0.1-SNAPSHOT.jar
+java -XX:AOTMode=create -XX:AOTConfiguration=app.aotconf -XX:AOTCache=app.aot -jar api-provider/build/libs/api-provider-0.0.1-SNAPSHOT.jar 
 
-> **NOTE:** Not the same as Spring AOT, see (and its limitations): https://docs.spring.io/spring-boot/reference/packaging/aot.html 
+# Run with AOT Cache
+java -XX:AOTCache=app.aot -jar api-provider/build/libs/api-provider-0.0.1-SNAPSHOT.jar 
+# Started ApiProviderApplication in 0.813 seconds (process running for 0.997)
+```
 
-> **NOTE:** Watch out for libs that connect during startup, e.g. dbs and JWTS lookup
+AOT Cache with Java 25 commands:
 
-Spring-smoke-test project...
+```
+# Create AOT Cache
+java -XX:AOTCacheOutput=app.aot -Dspring.context.exit=onRefresh -jar api-provider/build/libs/api-provider-0.0.1-SNAPSHOT.jar
+
+# Run with AOT Cache
+java -XX:AOTCache=app.aot -jar api-provider/build/libs/api-provider-0.0.1-SNAPSHOT.jar
+# Started ApiProviderApplication in 0.824 seconds (process running for 1.019)
+```
+
+Build Pack + `BP_JVM_AOTCACHE_ENABLED: "true"` config in `build.gradle`.
+
+* [api-provider/build.gradle](api-provider/build.gradle)
+
+```
+./gradlew bootBuildImage
+docker images | grep sb4
+```
+
+Results in:
+```
+sb4labs/api-consumer:latest  d0f97ca63c82  375MB
+sb4labs/api-provider:latest  fb05197921ab  359MB
+```
+
+Without `BP_JVM_AOTCACHE_ENABLED: "true"`:
+
+```
+docker run -p 8001:7001 sb4labs/api-provider
+# Started ApiProviderApplication in 1.234 seconds (process running for 1.455)
+```
+
+With `BP_JVM_AOTCACHE_ENABLED: "true"`:
+
+```
+docker run -p 8001:7001 sb4labs/api-provider
+# ...
+# Spring AOT Cache Enabled, contributing -XX:AOTCache=application.aot to JAVA_TOOL_OPTIONS
+# ...
+# Started ApiProviderApplication in 0.547 seconds (process running for 0.7)
+```
+
+> **NOTE:**  Java AOT Cache is not the same as Spring AOT, see (and its limitations): https://docs.spring.io/spring-boot/reference/packaging/aot.html 
+
+> **NOTE:** Watch out for libraries that connect during startup, e.g.:
+> 
+> 1. Prevent early database interaction
+>    * https://github.com/spring-projects/spring-lifecycle-smoke-tests/blob/main/data/data-jpa
+>    * https://github.com/spring-projects/spring-lifecycle-smoke-tests/tree/main/data/data-mongodb-reactive
+>    * https://github.com/spring-projects/spring-lifecycle-smoke-tests/tree/main/data/data-mongodb
+> 2. Clients of Spring Config Server looking for their configuration
+> 3. OIDC (OAuth) Resource Servers resolving the Authorization Server's Discovery Endpoint
+> 
+> **Solution:** Where needed, create a Spring Profile used during Java AOT Cache training:
+> 
+> ```
+> spring.config.activate.on-profile: aot-cache-training
+> ```
+> Configured in the Build Packs config, e.g.:
+> ```
+> TRAINING_RUN_JAVA_TOOL_OPTIONS: "-Dspring.profiles.active=aot-cache-training"
+> ```
 
 # 6. Null-safe application
 

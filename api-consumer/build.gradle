@@ -60,10 +60,13 @@ tasks.withType(Test) {
 }
 
 tasks.named('bootBuildImage') {
-    createdDate = "now"
     imageName = "sb4labs/api-consumer"
-    environment["BPE_DELIM_JAVA_TOOL_OPTIONS"] = " "
-    environment["BPE_APPEND_JAVA_TOOL_OPTIONS"] = "--enable-preview"
+    createdDate = "now"
+    environment = [
+        BPE_DELIM_JAVA_TOOL_OPTIONS: " ",
+        BPE_APPEND_JAVA_TOOL_OPTIONS: "--enable-preview --enable-native-access=ALL-UNNAMED",
+        BP_JVM_AOTCACHE_ENABLED: "true"
+    ]
 }
 
 tasks.named("bootRun") {
