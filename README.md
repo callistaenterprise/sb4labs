@@ -270,33 +270,42 @@ docker run -p 8001:7001 sb4labs/api-provider
 
 # 6. Null-safe application
 
-An overview already covered in previous presentations, now time for the details...
+An overview already covered in earlier presentations, now time for the details...
 
-TODO...
+Background info:
+* [Spring Framework 7 on null-safety](https://docs.spring.io/spring-framework/reference/core/null-safety.html)
+* [Blog post 2025-03-10](https://spring.io/blog/2025/03/10/null-safety-in-spring-apps-with-jspecify-and-null-away)
+* [Blog post 2025-11-12](https://spring.io/blog/2025/11/12/null-safe-applications-with-spring-boot-4)
+
+1. Settings in `build.gradle`:
+   * [api-provider/build.gradle](api-provider/build.gradle)
+   * [api-consumer/build.gradle](api-consumer/build.gradle)
 
 
-Settings in `build.gradle`:
-* [api-provider/build.gradle](api-provider/build.gradle)
-* [api-consumer/build.gradle](api-consumer/build.gradle)
-
-Every Java package needs its own `@NullMarked` annotation...
-- A OpenRewrite Package Visitor to the resque:   
-  (still under development...)
-   ```java
-    public class CreateNullMarkedPackagesVisitor extends JavaIsoVisitor<ExecutionContext> {
-        private final JavaTemplate PackageInfoTemplate =
-            JavaTemplate.builder(
-            """
-            @NullMarked
-            package #{};
+2. Every Java package needs its own `@NullMarked` annotation, puh...
+   - A OpenRewrite Package Visitor to the resque:   
+     (still under development...)
+      ```java
+       public class CreateNullMarkedPackagesVisitor extends JavaIsoVisitor<ExecutionContext> {
+           private final JavaTemplate PackageInfoTemplate =
+               JavaTemplate.builder(
+               """
+               @NullMarked
+               package #{};
    
-            import org.jspecify.annotations.NullMarked;
-            """).build();
-    }
-   ```
+               import org.jspecify.annotations.NullMarked;
+               """).build();
+       }
+      ```
 
-Code changes...
+    A lot of `package-info.java` files, all looking the same (except fo the package name):
+    * [package-info.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/package-info.java)
 
+
+3. Code changes:
+   * Using `Objects.requireNonNull()` where a library (`RestClient`) can return `null`, but not the way I'm using it...   
+     [ProductCompositeIntegration.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/ProductCompositeIntegration.java)
+   * Had to remove null checks in [ProductCompositeRestController.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/ProductCompositeRestController.java)
 
 # 7. Observability
 
