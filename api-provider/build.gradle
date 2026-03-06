@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '4.0.1'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'net.ltgt.errorprone' version '4.2.0' // https://github.com/tbroyer/gradle-errorprone-plugin
 }
 
 group = 'se.magnus.sb4labs'
@@ -19,6 +20,8 @@ repositories {
 }
 
 dependencies {
+    errorprone 'com.uber.nullaway:nullaway:0.12.7' // https://github.com/uber/NullAway
+    errorprone 'com.google.errorprone:error_prone_core:2.38.0' // https://github.com/google/error-prone
 
     implementation project(':api-definitions')
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
@@ -31,6 +34,14 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.errorprone {
+        disableAllChecks = true // Other error prone checks are disabled
+        option("NullAway:OnlyNullMarked", "true") // Enable nullness checks only in null-marked code
+        error("NullAway") // bump checks from warnings (default) to errors
+    }
 }
 
 tasks.named('test') {

@@ -17,7 +17,7 @@ Three variants:
 1. `interface-client` - Concurrent with Interface Clients
 1. `rest-client` - Concurrent with RestClients
 
-> **NOTE:** For simplicity, one API PRovider implementans all three core services
+> **NOTE:** For simplicity, one API Provider implements all three core services
 
 # 2. Build, run, and test
 
@@ -270,7 +270,33 @@ docker run -p 8001:7001 sb4labs/api-provider
 
 # 6. Null-safe application
 
+An overview already covered in previous presentations, now time for the details...
+
 TODO...
+
+
+Settings in `build.gradle`:
+* [api-provider/build.gradle](api-provider/build.gradle)
+* [api-consumer/build.gradle](api-consumer/build.gradle)
+
+Every Java package needs its own `@NullMarked` annotation...
+- A OpenRewrite Package Visitor to the resque:   
+  (still under development...)
+   ```java
+    public class CreateNullMarkedPackagesVisitor extends JavaIsoVisitor<ExecutionContext> {
+        private final JavaTemplate PackageInfoTemplate =
+            JavaTemplate.builder(
+            """
+            @NullMarked
+            package #{};
+   
+            import org.jspecify.annotations.NullMarked;
+            """).build();
+    }
+   ```
+
+Code changes...
+
 
 # 7. Observability
 

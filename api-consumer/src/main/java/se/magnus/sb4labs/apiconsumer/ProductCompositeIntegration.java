@@ -27,6 +27,8 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 @Component
 public class ProductCompositeIntegration implements ProductRestService, RecommendationRestService, ReviewRestService {
 
@@ -72,8 +74,10 @@ public class ProductCompositeIntegration implements ProductRestService, Recommen
         .apiVersion(props.productService().apiversion())
         .retrieve()
         .body(Product.class);
-      LOG.debug("Found a product with id: {}", product.productId());
 
+      requireNonNull(product, "product cannot be null");
+
+      LOG.debug("Found a product with id: {}", product.productId());
       return product;
 
     } catch (HttpClientErrorException ex) {
@@ -123,6 +127,8 @@ public class ProductCompositeIntegration implements ProductRestService, Recommen
         .retrieve()
         .body(new ParameterizedTypeReference<>() {});
 
+      requireNonNull(recommendations, "recommendations cannot be null");
+
       LOG.debug("Found {} recommendations for a product with id: {}", recommendations.size(), productId);
       return recommendations;
 
@@ -143,6 +149,8 @@ public class ProductCompositeIntegration implements ProductRestService, Recommen
         .apiVersion(props.reviewService().apiversion())
         .retrieve()
         .body(new ParameterizedTypeReference<>() {});
+
+      requireNonNull(reviews, "reviews cannot be null");
 
       LOG.debug("Found {} reviews for a product with id: {}", reviews.size(), productId);
       return reviews;

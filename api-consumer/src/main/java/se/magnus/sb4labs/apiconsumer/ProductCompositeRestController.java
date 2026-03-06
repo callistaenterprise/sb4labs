@@ -141,13 +141,13 @@ public class ProductCompositeRestController implements ProductCompositeRestServi
 
     // 2. Copy summary recommendation info, if available
     List<RecommendationSummary> recommendationSummaries =
-      (recommendations == null) ? null : recommendations.stream()
+      recommendations.stream()
         .map(r -> new RecommendationSummary(r.recommendationId(), r.author(), r.rate(), r.content()))
         .toList();
 
     // 3. Copy summary review info, if available
     List<ReviewSummary> reviewSummaries =
-      (reviews == null) ? null : reviews.stream()
+      reviews.stream()
         .map(r -> new ReviewSummary(r.reviewId(), r.author(), r.subject(), r.content()))
         .toList();
 
