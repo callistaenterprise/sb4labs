@@ -442,7 +442,7 @@ spring.http:serviceclient:
     base-url: http://localhost:7001
 ```
 
-Usage:
+Usage in [ProductCompositeRestController.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/ProductCompositeRestController.java):
 
 ``` java
   final private ProductClient productClient;
