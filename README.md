@@ -609,18 +609,18 @@ Works out of the box. See `getProductWithInterfaceClients()` in:
 
 ## 9.6. Distributed Tracing?
 
-**WORK IN PROGRESS**: Works out of the box, the underlying HTTP client (i.e., RestProxy or WebProxy) handles the W3C Context propagation. See `getProductSequential()` in:
+**WORK IN PROGRESS**: Works out of the box, the underlying HTTP client (i.e., RestClient or WebClient) handles the W3C Context propagation. See `getProductSequential()` in:
 * [ProductCompositeRestController.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/ProductCompositeRestController.java)
 
 ## 9.7. Security?
 
-No autoconfiguration for OAuth in place yet!
+**WORK IN PROGRESS**: No autoconfiguration for OAuth in place yet!
 
 Track progress in: [Issue #46956: Add Autoconfiguration for OAuth2 + Interface HTTP Clients](https://github.com/spring-projects/spring-boot/issues/46956)
 
 ## 9.8. GraalVM Native Compile?
 
-**TODO:** Not yet tested...
+**WORK IN PROGRESS**: Not yet tested...
 
 # 10. Spring Data AOT Repositories
 
