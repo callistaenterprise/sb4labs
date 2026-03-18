@@ -56,6 +56,11 @@ public class ProductCompositeRestController implements ProductCompositeRestServi
 
     LOG.debug("Calling the three APIs sequentially...");
 
+    // Use the integration class RestCLient to get TraceId propagation to work correctly
+    // var product = integration.getProduct(productId, delay, faultPercent);
+    // var recommendation = integration.getRecommendations(productId);
+    // var reviews = integration.getReviews(productId);
+
     var product = productClient.getProduct(productId, delay, faultPercent);
     var recommendation = recommendationClient.getRecommendations(productId);
     var reviews = reviewClient.getReviews(productId);

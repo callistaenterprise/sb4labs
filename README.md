@@ -10,7 +10,7 @@ graph TD;
 
 The Composite service calling the core services uses:
 1. Using Virtual Threads with Structured Concurrency
-1. Using Interface Clients and RestClients
+1. Using `RestClient` and the new Interface based HTTP Client
 
 Three variants:
 1. `sequential` - Sequential with Interface Clients
@@ -34,15 +34,20 @@ Test script:
 * [test one client type](test-one-client.bash)
 
 
-# 3. Code changes
+# 3. Code changes required by SB 4
 
 See [Spring Boot 4.0 Migration Guide](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide)
 
-## 3.1. Fine grained deps
+## 3.1. Fine grained dependencies
 
-Spring Boot 4 breaks up the monolithic `spring-boot-autoconfigure` jar into small and more focused modules. Intended goals are:
+> **From [Modularizing Spring Boot](https://spring.io/blog/2025/10/28/modularizing-spring-boot):**
+>
+> _Each time we support something new, the autoconfigure jar grows. With Spring Boot 3.5, that single spring-boot-autoconfigure jar is now 2 MiB!_**
+
+Spring Boot 4 breaks up the monolithic `spring-boot-autoconfigure` and `spring-boot-test-autoconfigure` jars, resulting in smaller and more focused modules. Intended goals are:
 * Maintainability and architectural clarity 
 * Reduced artifact sizes and footprint
+
 
 Examples:
 
@@ -56,7 +61,7 @@ Examples:
    To:
 
        org.springframework.boot.data.mongodb.test.autoconfigure
-1. OTel et al dependencies are now part of a single dependency `spring-boot-starter-opentelemetry`
+
 
 ## 3.2. OpenRewrite to some help...
 
@@ -298,7 +303,7 @@ Background info:
        }
       ```
 
-    A lot of `package-info.java` files, all looking the same (except fo the package name):
+    A lot of `package-info.java` files, all looking the same (except for the package name):
     * [package-info.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/package-info.java)
 
 
@@ -309,7 +314,7 @@ Background info:
 
 # 7. Observability
 
-Dependency:
+Observability dependencies are now packaged into one single `OTel` starter dependnecy:
 
     implementation 'org.springframework.boot:spring-boot-starter-opentelemetry'
 
@@ -345,10 +350,14 @@ curl localhost:7002/product-composite/interface-client/2 -i
 
 Check trace i Jaegers Web UI: http://localhost:16686
 
-**Conslusion:** Context propagation currently does not work with Structured Concurrency,   
+Results:
+* [Sequential with RestClient](./docs/Jaeger-SpringBoot4-Sequential-RestClient.png)
+* [Structured Concurrency](./docs/Jaeger-SpringBoot4-Structured-Concurrency-InterfaceClient.png)
+
+**Conclusion:** Context propagation currently does not work with Structured Concurrency,   
 see [Micrometer issue: Investigate Scoped Values](https://github.com/micrometer-metrics/context-propagation/issues/108)
 
-Compare with WebFLux and Project Reactor: [Jaeger-SpringBoot4-WebFlux.png](./docs/Jaeger-SpringBoot4-WebFlux.png)
+Compare with WebFlux and Project Reactor: [Jaeger-SpringBoot4-WebFlux.png](./docs/Jaeger-SpringBoot4-WebFlux-InterfaceClient.png)
 
 When done:
 
@@ -377,11 +386,10 @@ docker rm -f jaeger
 
 API Version can be specified in either:
 
-1. Request header
-1. Request parameter
-1. Path segment
-1. Media type parameter
-
+1. Path segment: `/api/v1/users` vs `/api/v2/users`
+1. Request header: `X-API-Version: 1.0` vs` X-API-Version: 2.0`
+1. Query parameter: `/api/users?version=1.0` vs `/api/users?version=2.0`
+1. Media type parameter: `Accept: application/json;version=1.0` vs `Accept: application/json;version=2.0`
 
 ## 8.1. API Provider
 
@@ -471,7 +479,7 @@ Eliminates the need of [ProductCompositeIntegration.java](api-consumer/src/main/
 7. Security?
 8. GraalVM Native Compile?
 
-Generic blog posts (more or less AI-generated...) don't cover this level of details, e.g., https://www.danvega.dev/blog/http-interfaces-spring-boot-4...
+> **NOTE:** Generic blog posts (more or less AI-generated...) don't cover this level of details, e.g., https://www.danvega.dev/blog/http-interfaces-spring-boot-4...
 
 ## 9.1. API Versioning?
 
@@ -484,7 +492,7 @@ Generic blog posts (more or less AI-generated...) don't cover this level of deta
       groups.forEachClient((group, builder) -> {
         builder
           .defaultHeader("Accept", "application/json")
-          .apiVersionInserter(ApiVersionInserter.usePathSegment(0)) // ADDED FOR API VERSIONING
+          .apiVersionInserter(usePathSegment(0)) // ADDED FOR API VERSIONING
 ```
 
 [Additions in application.yaml](api-consumer/src/main/resources/application.yaml):
@@ -601,7 +609,7 @@ Works out of the box. See `getProductWithInterfaceClients()` in:
 
 ## 9.6. Distributed Tracing?
 
-Works out of the box, the underlying HTTP client (i.e., RestProxy or WebProxy) handles the W3C Context propagation. See `getProductSequential()` in:
+**WORK IN PROGRESS**: Works out of the box, the underlying HTTP client (i.e., RestProxy or WebProxy) handles the W3C Context propagation. See `getProductSequential()` in:
 * [ProductCompositeRestController.java](api-consumer/src/main/java/se/magnus/sb4labs/apiconsumer/ProductCompositeRestController.java)
 
 ## 9.7. Security?
@@ -610,13 +618,14 @@ No autoconfiguration for OAuth in place yet!
 
 Track progress in: [Issue #46956: Add Autoconfiguration for OAuth2 + Interface HTTP Clients](https://github.com/spring-projects/spring-boot/issues/46956)
 
-## 9.8. GraalVM Native Compile
+## 9.8. GraalVM Native Compile?
 
 **TODO:** Not yet tested...
 
 # 10. Spring Data AOT Repositories
 
-**TODO:** Add some more text...
+Based on Spring AOT, i.e. making a closed-world assumption and generate code for Spring Data repositories at build time.   
+See [Spring Framework: Ahead of Time Optimizations](https://docs.spring.io/spring-framework/reference/core/aot.html).
 
 Spring Data Ahead of Time Repositories...
 

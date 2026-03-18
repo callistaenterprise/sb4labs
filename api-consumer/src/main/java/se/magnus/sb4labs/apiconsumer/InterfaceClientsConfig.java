@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_CONTENT;
+import static org.springframework.web.client.ApiVersionInserter.usePathSegment;
 
 @ImportHttpServices(group = "productGroup", types = ProductClient.class)
 @ImportHttpServices(group = "recommendationGroup", types = RecommendationClient.class)
@@ -51,7 +52,7 @@ public class InterfaceClientsConfig {
 //          .baseUrl("http://localhost:7001")
 //          .defaultApiVersion("1")
           .defaultHeader("Accept", "application/json")
-          .apiVersionInserter(ApiVersionInserter.usePathSegment(0))
+          .apiVersionInserter(usePathSegment(0))
           .defaultStatusHandler(this::shallErrorBeHandled, this::handleError)
           .requestInterceptor(new LoggingInterceptor());
       });

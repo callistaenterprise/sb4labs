@@ -19,10 +19,10 @@ public class ApiConsumerApplication {
   final static private Logger LOG = LoggerFactory.getLogger(ApiConsumerApplication.class);
 
   @Bean
-  RestClient restClient() {
-    return RestClient.builder().
-      apiVersionInserter(usePathSegment(0)).
-      build();
+  RestClient restClient(RestClient.Builder builder) {
+    return builder
+     .apiVersionInserter(usePathSegment(0))
+     .build();
   }
 
   static void main(String[] args) {

@@ -40,9 +40,9 @@ spring.http:
     productGroup:
       base-url: http://localhost:7001
       apiversion.default: 1
+    #     apiversion.insert.path-segment: 0
     #     default-header:
     #       -Accept: application/json
-    #     apiversion.insert.path-segment: 0
 
     recommendationGroup:
       base-url: http://localhost:7001
